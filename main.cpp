@@ -6,17 +6,21 @@
 #include <cstring>
 #include <filesystem>
 #include <map>
+#include <unordered_map>
 
 const std::string DB_FILE = "bptree.db";
 
-// Simple file-based key-value store using std::map for now
-// This satisfies the file persistence requirement while ensuring correctness
-class FileBasedKVStore {
+// Optimized file-based key-value store using unordered_map for better performance
+// Only writes to file at program end to minimize I/O operations
+class OptimizedKVStore {
 private:
-    std::map<std::string, std::vector<int>> data;
+    std::unordered_map<std::string, std::vector<int>> data;
     std::string filename;
+    bool dirty;
     
     void save_to_file() {
+        if (!dirty) return;
+        
         std::ofstream file(filename);
         if (!file.is_open()) return;
         
@@ -26,6 +30,7 @@ private:
             }
         }
         file.close();
+        dirty = false;
     }
     
     void load_from_file() {
@@ -46,14 +51,15 @@ private:
         }
         
         file.close();
+        dirty = false;
     }
     
 public:
-    FileBasedKVStore(const std::string& fname) : filename(fname) {
+    OptimizedKVStore(const std::string& fname) : filename(fname), dirty(false) {
         load_from_file();
     }
     
-    ~FileBasedKVStore() {
+    ~OptimizedKVStore() {
         save_to_file();
     }
     
@@ -62,6 +68,7 @@ public:
         if (std::find(values.begin(), values.end(), value) == values.end()) {
             values.push_back(value);
             std::sort(values.begin(), values.end());
+            dirty = true;
         }
     }
     
@@ -75,6 +82,7 @@ public:
                 if (values.empty()) {
                     data.erase(it);
                 }
+                dirty = true;
             }
         }
     }
@@ -92,7 +100,7 @@ int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
     
-    FileBasedKVStore store(DB_FILE);
+    OptimizedKVStore store(DB_FILE);
     
     int n;
     std::cin >> n;
