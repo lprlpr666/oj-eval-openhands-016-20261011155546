@@ -65,9 +65,10 @@ public:
     
     void insert(const std::string& key, int value) {
         auto& values = data[key];
-        if (std::find(values.begin(), values.end(), value) == values.end()) {
-            values.push_back(value);
-            std::sort(values.begin(), values.end());
+        // Use binary search to check for duplicate and insert in sorted order
+        auto it = std::lower_bound(values.begin(), values.end(), value);
+        if (it == values.end() || *it != value) {
+            values.insert(it, value);
             dirty = true;
         }
     }
@@ -76,8 +77,9 @@ public:
         auto it = data.find(key);
         if (it != data.end()) {
             auto& values = it->second;
-            auto val_it = std::find(values.begin(), values.end(), value);
-            if (val_it != values.end()) {
+            // Use binary search to find the value
+            auto val_it = std::lower_bound(values.begin(), values.end(), value);
+            if (val_it != values.end() && *val_it == value) {
                 values.erase(val_it);
                 if (values.empty()) {
                     data.erase(it);
